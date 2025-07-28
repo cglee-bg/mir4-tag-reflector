@@ -1,4 +1,3 @@
-// MIR4 Tag Reflector 개선된 UI + GitHub 배포용
 "use client";
 
 import { useState } from "react";
@@ -28,7 +27,9 @@ function renderFormattedText(input: string) {
       const colorClass =
         color === "#SkillInfo_Blue" ? "text-sky-500" :
         color === "#SkillInfo_Green" ? "text-green-500" :
-        color === "#SkillInfo_Yellow" ? "text-yellow-400" : "text-gray-800";
+        color === "#SkillInfo_Yellow" ? "text-yellow-400" :
+        color === "#CC33CC" ? "text-purple-600" :
+        color === "#FF644EFF" ? "text-pink-600" : "text-gray-800";
       return `<span class='${colorClass}'>${text}</span>`;
     });
 
