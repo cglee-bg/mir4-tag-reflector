@@ -1,3 +1,4 @@
+// MIR4 Tag Reflector 개선된 UI + GitHub 배포용
 "use client";
 
 import { useState } from "react";
@@ -25,12 +26,12 @@ function renderFormattedText(input: string) {
       tagSet.add(color);
       tagCounts[color] = (tagCounts[color] || 0) + 1;
       const colorClass =
-        color === "#SkillInfo_Blue" ? "text-sky-500" :
-        color === "#SkillInfo_Green" ? "text-green-500" :
-        color === "#SkillInfo_Yellow" ? "text-yellow-400" :
-        color === "#CC33CC" ? "text-purple-600" :
-        color === "#FF644EFF" ? "text-pink-600" : "text-gray-800";
-      return `<span class='${colorClass}'>${text}</span>`;
+        color === "#SkillInfo_Blue" ? "text-sky-500 bg-sky-100 px-1 rounded" :
+        color === "#SkillInfo_Green" ? "text-green-600 bg-green-100 px-1 rounded" :
+        color === "#SkillInfo_Yellow" ? "text-yellow-700 bg-yellow-100 px-1 rounded" :
+        color === "#CC33CC" ? "text-purple-600 bg-purple-100 px-1 rounded" :
+        color === "#FF644EFF" ? "text-pink-600 bg-pink-100 px-1 rounded" : "text-gray-800 bg-gray-100 px-1 rounded";
+      return `<span class='${colorClass}' title='${color}'>${text}</span>`;
     });
 
     replacedLine = replacedLine.replace(openTagOnlyRegex, (match) => {
@@ -43,7 +44,8 @@ function renderFormattedText(input: string) {
 
     const hasError = replacedLine.includes("bg-red-200");
     const lineNumberStyle = hasError ? "text-red-500 font-bold" : "text-gray-400";
-    output += `<div class='whitespace-pre-wrap break-words flex items-start'><span class='${lineNumberStyle} select-none mr-2 w-6 text-right'>${index + 1}.</span><div class='flex-1'>${replacedLine}</div></div>`;
+    const borderStyle = hasError ? "border-l-4 border-red-400 bg-red-50" : "";
+    output += `<div class='${borderStyle} whitespace-pre-wrap break-words flex items-start px-1 py-0.5 rounded'><span class='${lineNumberStyle} select-none mr-2 w-6 text-right'>${index + 1}.</span><div class='flex-1'>${replacedLine}</div></div>`;
   });
 
   const openTags = (normalizedInput.match(openTagRegex) || []).length;
