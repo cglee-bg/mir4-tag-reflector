@@ -15,6 +15,7 @@ function renderFormattedText(input: string) {
   const closeTagRegex = /<\/>/g;
   const fullTagRegex = /<span color=\"(#[A-Za-z0-9_]+)\">(.*?)<\/>/g;
   const openTagOnlyRegex = /(<span color=\"(#[A-Za-z0-9_]+)\">[^<\n]*)/g;
+  const singleColorTagRegex = /<([A-Fa-f0-9]{8})>([^<\n]*)<\/>/g;
 
   let output = "";
   const lines = normalizedInput.split(/\r?\n/);
@@ -32,6 +33,14 @@ function renderFormattedText(input: string) {
         color === "#CC33CC" ? "text-purple-600 bg-purple-100 px-1 rounded" :
         color === "#FF644EFF" ? "text-pink-600 bg-pink-100 px-1 rounded" : "text-gray-800 bg-gray-100 px-1 rounded";
       return `<span class='${colorClass}' title='${color}'>${text}</span>`;
+    });
+
+    replacedLine = replacedLine.replace(singleColorTagRegex, (match, hexColor, text) => {
+      tagSet.add(`#${hexColor}`);
+      tagCounts[`#${hexColor}`] = (tagCounts[`#${hexColor}`] || 0) + 1;
+
+      const colorClass = "text-black bg-yellow-100 px-1 rounded"; // 고정 스타일
+      return `<span class='${colorClass}' title='#${hexColor}'>${text}</span>`;
     });
 
     replacedLine = replacedLine.replace(openTagOnlyRegex, (match) => {
