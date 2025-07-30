@@ -126,6 +126,13 @@ export default function Home() {
   const [targetCol, setTargetCol] = useState(2);
   const [onlyErrors, setOnlyErrors] = useState(false);
   const [start, setStart] = useState(false);
+  const [manualSource, setManualSource] = useState("");
+  const [manualTarget, setManualTarget] = useState("");
+  const [manualResult, setManualResult] = useState<{
+    source: ReturnType<typeof renderFormattedText>;
+    target: ReturnType<typeof renderFormattedText>;
+    mismatch: string;
+  } | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -140,6 +147,26 @@ export default function Home() {
       setExcelData(parsedData);
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  const runManualCheck = () => {
+    const src = renderFormattedText(manualSource);
+    const tgt = renderFormattedText(manualTarget);
+    const mismatch = compareTags(
+      src.tagSet,
+      tgt.tagSet,
+      src.tagCounts,
+      tgt.tagCounts,
+      src.lineCount,
+      tgt.lineCount,
+      src.numberList,
+      tgt.numberList,
+      src.openTags,
+      tgt.openTags,
+      src.closeTags,
+      tgt.closeTags
+    );
+    setManualResult({ source: src, target: tgt, mismatch });
   };
 
   const columnOptions = excelData[0]?.map((header, idx) => (
@@ -160,6 +187,50 @@ export default function Home() {
         📁 파일 선택하기
       </label>
       <input id="file-upload" type="file" accept=".xlsx" onChange={handleFileUpload} className="hidden" />
+
+      <div className="mt-6 space-y-2">
+        <h2 className="font-semibold">직접 입력</h2>
+        <textarea
+          value={manualSource}
+          onChange={e => setManualSource(e.target.value)}
+          placeholder="Source"
+          rows={3}
+          className="border p-2 w-full"
+        />
+        <textarea
+          value={manualTarget}
+          onChange={e => setManualTarget(e.target.value)}
+          placeholder="Target"
+          rows={3}
+          className="border p-2 w-full"
+        />
+        <button onClick={runManualCheck} className="px-4 py-1 bg-blue-600 text-white rounded">검사 실행</button>
+      </div>
+
+      {manualResult && (
+        <div className="space-y-2 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-bold mb-1">소스 (줄 {manualResult.source.lineCount})</h3>
+              <div className="border p-2 text-sm" dangerouslySetInnerHTML={{ __html: manualResult.source.output }} />
+            </div>
+            <div>
+              <h3 className="font-bold mb-1">번역 (줄 {manualResult.target.lineCount})</h3>
+              <div className="border p-2 text-sm" dangerouslySetInnerHTML={{ __html: manualResult.target.output }} />
+            </div>
+          </div>
+          {(manualResult.source.errors.length > 0 || manualResult.target.errors.length > 0 || manualResult.mismatch.length > 0) && (
+            <div className="mt-2 text-sm text-red-600">
+              <strong>검사 결과:</strong>
+              <ul className="list-disc list-inside">
+                {manualResult.source.errors.map((e, i) => <li key={'ms'+i} dangerouslySetInnerHTML={{ __html: e }} />)}
+                {manualResult.target.errors.map((e, i) => <li key={'mt'+i} dangerouslySetInnerHTML={{ __html: e }} />)}
+                {manualResult.mismatch && <li dangerouslySetInnerHTML={{ __html: manualResult.mismatch }} />}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {excelData.length > 0 && (
         <div className="space-y-2 mt-4">
