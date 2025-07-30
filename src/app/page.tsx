@@ -1,4 +1,4 @@
-// MIR4 Tag Reflector 개선된 UI + GitHub 배포용
+// BG Reflector 2.0 개선된 UI + GitHub 배포용
 "use client";
 
 import { useState, useRef } from "react";
@@ -270,9 +270,13 @@ export default function Home() {
         </div>
       )}
 
-      <h1 className="text-2xl font-bold mb-4">🌀 MIR4 Tag Reflector</h1>
+      <h1 className="text-2xl font-bold mb-4">🌀 BG Reflector 2.0</h1>
 
-      <label htmlFor="file-upload" className="block w-full text-center border-2 border-dashed border-gray-300 p-6 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition">
+      <label
+        htmlFor="file-upload"
+        className="block w-full text-center border-2 border-dashed border-gray-300 p-6 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition"
+        title="엑셀 파일을 업로드하면 자동으로 비교가 시작됩니다"
+      >
         📁 파일 선택하기 또는 드래그 앤 드롭
       </label>
       <input id="file-upload" type="file" accept=".xlsx" onChange={handleFileUpload} className="hidden" />
@@ -280,18 +284,20 @@ export default function Home() {
       <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-3">
         <h2 className="font-semibold">직접 입력</h2>
         <div className="space-y-2">
-          <h3 className="font-medium">정규식 관리</h3>
+          <h3 className="font-medium" title="태그를 인식할 정규식을 등록합니다">정규식 관리</h3>
           <div className="flex items-center gap-2">
             <input
               value={newPattern}
               onChange={e => setNewPattern(e.target.value)}
               placeholder="regex"
               className="border p-1 flex-1"
+              title="정규식 패턴"
             />
             <select
               value={newPatternType}
               onChange={e => setNewPatternType(e.target.value as TagPattern["type"])}
               className="border p-1"
+              title="패턴 종류"
             >
               <option value="open">Open</option>
               <option value="close">Close</option>
@@ -322,12 +328,14 @@ export default function Home() {
             onChange={e => setNewOpen(e.target.value)}
             placeholder="<tag>"
             className="border p-1 flex-1"
+            title="시작 태그"
           />
           <input
             value={newClose}
             onChange={e => setNewClose(e.target.value)}
             placeholder="</tag>"
             className="border p-1 flex-1"
+            title="종료 태그"
           />
           <button onClick={addTemplate} className="px-2 py-1 bg-indigo-600 text-white rounded">추가</button>
         </div>
@@ -356,6 +364,7 @@ export default function Home() {
             placeholder="Source"
             rows={3}
             className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            title="원문 텍스트"
           />
         </div>
         <div>
@@ -383,9 +392,16 @@ export default function Home() {
             placeholder="Target"
             rows={3}
             className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            title="번역 텍스트"
           />
         </div>
-        <button onClick={runManualCheck} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">검사 실행</button>
+        <button
+          onClick={runManualCheck}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          title="입력한 텍스트를 비교합니다"
+        >
+          검사 실행
+        </button>
       </div>
 
       {manualResult && (
@@ -469,7 +485,17 @@ export default function Home() {
           return (
             <details key={index} className="border rounded p-4 bg-white shadow">
               <summary className="cursor-pointer font-semibold">
-                {hasIssue ? "❗ 이슈 있음" : "✅ 통과"} — <span className="text-blue-700 hover:underline cursor-pointer" onClick={() => copyToClipboard(String(key), setToast)}>{key || `Row ${index + 1}`}</span>
+                {hasIssue ? "❗ 이슈 있음" : "✅ 통과"} — <span
+                  className="text-blue-700 hover:underline cursor-pointer"
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    copyToClipboard(String(key), setToast);
+                  }}
+                  title="키 복사"
+                >
+                  {key || `Row ${index + 1}`}
+                </span>
               </summary>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
