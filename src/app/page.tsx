@@ -1,8 +1,20 @@
 // MIR4 Tag Reflector 개선된 UI + GitHub 배포용
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
+
+type Template = {
+  id: string;
+  label: string;
+  snippet: string;
+};
+
+type TagPattern = {
+  id: string;
+  pattern: string;
+  type: "open" | "close" | "empty";
+};
 
 function renderFormattedText(input: string) {
   if (typeof input !== "string") input = String(input ?? "");
@@ -134,6 +146,26 @@ export default function Home() {
     mismatch: string;
   } | null>(null);
 
+  const [templates, setTemplates] = useState<Template[]>([
+    { id: "span", label: "<span color=\"\">...</>", snippet: "<span color=\"\"></>" },
+    { id: "close", label: "</>", snippet: "</>" },
+    { id: "br", label: "<br/>", snippet: "<br/>" },
+  ]);
+  const [selectedTemplate, setSelectedTemplate] = useState("span");
+  const [newOpen, setNewOpen] = useState("");
+  const [newClose, setNewClose] = useState("");
+
+  const [tagPatterns, setTagPatterns] = useState<TagPattern[]>([
+    { id: "default-open", pattern: "<span[^>]*>", type: "open" },
+    { id: "default-close", pattern: "</>", type: "close" },
+    { id: "default-br", pattern: "<br/?>", type: "empty" },
+  ]);
+  const [newPattern, setNewPattern] = useState("");
+  const [newPatternType, setNewPatternType] = useState<TagPattern["type"]>("open");
+  const [previewText, setPreviewText] = useState("");
+  const sourceRef = useRef<HTMLTextAreaElement | null>(null);
+  const targetRef = useRef<HTMLTextAreaElement | null>(null);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -169,6 +201,63 @@ export default function Home() {
     setManualResult({ source: src, target: tgt, mismatch });
   };
 
+  const insertTemplateAtCursor = (
+    ref: React.RefObject<HTMLTextAreaElement | null>,
+    setValue: (v: string) => void
+  ) => {
+    const template = templates.find(t => t.id === selectedTemplate);
+    if (!template || !ref.current) return;
+    const el = ref.current;
+    const start = el.selectionStart || 0;
+    const end = el.selectionEnd || 0;
+    const newText = el.value.slice(0, start) + template.snippet + el.value.slice(end);
+    setValue(newText);
+    requestAnimationFrame(() => {
+      const pos = start + template.snippet.length;
+      el.selectionStart = el.selectionEnd = pos;
+      el.focus();
+    });
+  };
+
+  const addTemplate = () => {
+    if (!newOpen.trim()) return;
+    const snippet = newOpen + (newClose || "");
+    const label = newClose ? `${newOpen}...${newClose}` : newOpen;
+    const id = Date.now().toString();
+    setTemplates([...templates, { id, label, snippet }]);
+    setSelectedTemplate(id);
+    setNewOpen("");
+    setNewClose("");
+  };
+
+  const addPattern = () => {
+    if (!newPattern.trim()) return;
+    const id = Date.now().toString();
+    setTagPatterns([...tagPatterns, { id, pattern: newPattern, type: newPatternType }]);
+    setNewPattern("");
+    setNewPatternType("open");
+  };
+
+  const previewOutput = () => {
+    let result = previewText
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    tagPatterns.forEach(p => {
+      try {
+        const regex = new RegExp(p.pattern, "g");
+        const cls =
+          p.type === "open"
+            ? "bg-blue-100 text-blue-800"
+            : p.type === "close"
+            ? "bg-red-100 text-red-800"
+            : "bg-green-100 text-green-800";
+        result = result.replace(regex, m => `<span class='${cls} px-1 rounded'>${m}</span>`);
+      } catch {}
+    });
+    return result;
+  };
+
   const columnOptions = excelData[0]?.map((header, idx) => (
     <option value={idx} key={idx}>{header || `열 ${idx}`}</option>
   ));
@@ -190,20 +279,112 @@ export default function Home() {
 
       <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-3">
         <h2 className="font-semibold">직접 입력</h2>
-        <textarea
-          value={manualSource}
-          onChange={e => setManualSource(e.target.value)}
-          placeholder="Source"
-          rows={3}
-          className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-        />
-        <textarea
-          value={manualTarget}
-          onChange={e => setManualTarget(e.target.value)}
-          placeholder="Target"
-          rows={3}
-          className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-        />
+        <div className="space-y-2">
+          <h3 className="font-medium">정규식 관리</h3>
+          <div className="flex items-center gap-2">
+            <input
+              value={newPattern}
+              onChange={e => setNewPattern(e.target.value)}
+              placeholder="regex"
+              className="border p-1 flex-1"
+            />
+            <select
+              value={newPatternType}
+              onChange={e => setNewPatternType(e.target.value as TagPattern["type"])}
+              className="border p-1"
+            >
+              <option value="open">Open</option>
+              <option value="close">Close</option>
+              <option value="empty">Empty</option>
+            </select>
+            <button onClick={addPattern} className="px-2 py-1 bg-indigo-600 text-white rounded">등록</button>
+          </div>
+          <ul className="text-sm text-gray-700 list-disc list-inside">
+            {tagPatterns.map(p => (
+              <li key={p.id}>[{p.type}] /{p.pattern}/</li>
+            ))}
+          </ul>
+          <textarea
+            value={previewText}
+            onChange={e => setPreviewText(e.target.value)}
+            placeholder="프리뷰용 텍스트"
+            rows={2}
+            className="border p-1 w-full"
+          />
+          <div
+            className="border p-2 text-sm rounded"
+            dangerouslySetInnerHTML={{ __html: previewOutput() }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            value={newOpen}
+            onChange={e => setNewOpen(e.target.value)}
+            placeholder="<tag>"
+            className="border p-1 flex-1"
+          />
+          <input
+            value={newClose}
+            onChange={e => setNewClose(e.target.value)}
+            placeholder="</tag>"
+            className="border p-1 flex-1"
+          />
+          <button onClick={addTemplate} className="px-2 py-1 bg-indigo-600 text-white rounded">추가</button>
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <select
+              value={selectedTemplate}
+              onChange={e => setSelectedTemplate(e.target.value)}
+              className="border px-2"
+            >
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => insertTemplateAtCursor(sourceRef, setManualSource)}
+              className="px-2 py-1 bg-gray-200 rounded"
+            >
+              삽입
+            </button>
+          </div>
+          <textarea
+            ref={sourceRef}
+            value={manualSource}
+            onChange={e => setManualSource(e.target.value)}
+            placeholder="Source"
+            rows={3}
+            className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <select
+              value={selectedTemplate}
+              onChange={e => setSelectedTemplate(e.target.value)}
+              className="border px-2"
+            >
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => insertTemplateAtCursor(targetRef, setManualTarget)}
+              className="px-2 py-1 bg-gray-200 rounded"
+            >
+              삽입
+            </button>
+          </div>
+          <textarea
+            ref={targetRef}
+            value={manualTarget}
+            onChange={e => setManualTarget(e.target.value)}
+            placeholder="Target"
+            rows={3}
+            className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
         <button onClick={runManualCheck} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">검사 실행</button>
       </div>
 
