@@ -174,7 +174,7 @@ export default function Home() {
   ));
 
   return (
-    <main className="min-h-screen bg-white text-black p-6">
+    <main className="min-h-screen bg-white text-black p-6 max-w-4xl mx-auto">
       {toast && (
         <div className="fixed top-5 right-5 bg-black text-white px-4 py-2 rounded-md shadow">
           {toast}
@@ -183,40 +183,40 @@ export default function Home() {
 
       <h1 className="text-2xl font-bold mb-4">🌀 MIR4 Tag Reflector</h1>
 
-      <label htmlFor="file-upload" className="inline-block cursor-pointer bg-indigo-600 text-white px-5 py-2 rounded hover:bg-indigo-700">
-        📁 파일 선택하기
+      <label htmlFor="file-upload" className="block w-full text-center border-2 border-dashed border-gray-300 p-6 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition">
+        📁 파일 선택하기 또는 드래그 앤 드롭
       </label>
       <input id="file-upload" type="file" accept=".xlsx" onChange={handleFileUpload} className="hidden" />
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-3">
         <h2 className="font-semibold">직접 입력</h2>
         <textarea
           value={manualSource}
           onChange={e => setManualSource(e.target.value)}
           placeholder="Source"
           rows={3}
-          className="border p-2 w-full"
+          className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
         />
         <textarea
           value={manualTarget}
           onChange={e => setManualTarget(e.target.value)}
           placeholder="Target"
           rows={3}
-          className="border p-2 w-full"
+          className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
         />
-        <button onClick={runManualCheck} className="px-4 py-1 bg-blue-600 text-white rounded">검사 실행</button>
+        <button onClick={runManualCheck} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">검사 실행</button>
       </div>
 
       {manualResult && (
-        <div className="space-y-2 mt-4">
+        <div className="space-y-2 mt-4 p-4 bg-gray-50 rounded-lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-bold mb-1">소스 (줄 {manualResult.source.lineCount})</h3>
-              <div className="border p-2 text-sm" dangerouslySetInnerHTML={{ __html: manualResult.source.output }} />
+              <div className="border p-2 text-sm rounded" dangerouslySetInnerHTML={{ __html: manualResult.source.output }} />
             </div>
             <div>
               <h3 className="font-bold mb-1">번역 (줄 {manualResult.target.lineCount})</h3>
-              <div className="border p-2 text-sm" dangerouslySetInnerHTML={{ __html: manualResult.target.output }} />
+              <div className="border p-2 text-sm rounded" dangerouslySetInnerHTML={{ __html: manualResult.target.output }} />
             </div>
           </div>
           {(manualResult.source.errors.length > 0 || manualResult.target.errors.length > 0 || manualResult.mismatch.length > 0) && (
@@ -233,7 +233,7 @@ export default function Home() {
       )}
 
       {excelData.length > 0 && (
-        <div className="space-y-2 mt-4">
+        <div className="space-y-2 mt-4 p-4 bg-gray-50 rounded-lg">
           <div className="flex gap-4">
             <label>Key 열:
               <select value={keyCol} onChange={e => setKeyCol(Number(e.target.value))} className="border px-2 ml-2">
@@ -255,7 +255,7 @@ export default function Home() {
             <input type="checkbox" checked={onlyErrors} onChange={() => setOnlyErrors(!onlyErrors)} />
             <span>❗ 이슈만 보기</span>
           </label>
-          <button onClick={() => setStart(true)} className="ml-4 px-4 py-1 bg-blue-600 text-white rounded">검사 시작</button>
+          <button onClick={() => setStart(true)} className="ml-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition">검사 시작</button>
         </div>
       )}
 
@@ -286,18 +286,18 @@ export default function Home() {
           if (onlyErrors && !hasIssue) return null;
 
           return (
-            <details key={index} className="border rounded p-4 bg-gray-50">
+            <details key={index} className="border rounded p-4 bg-white shadow">
               <summary className="cursor-pointer font-semibold">
                 {hasIssue ? "❗ 이슈 있음" : "✅ 통과"} — <span className="text-blue-700 hover:underline cursor-pointer" onClick={() => copyToClipboard(String(key), setToast)}>{key || `Row ${index + 1}`}</span>
               </summary>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
                   <h3 className="font-bold mb-1">소스 (줄 {sourceResult.lineCount})</h3>
-                  <div className="border p-2 text-sm" dangerouslySetInnerHTML={{ __html: sourceResult.output }} />
+                  <div className="border p-2 text-sm rounded" dangerouslySetInnerHTML={{ __html: sourceResult.output }} />
                 </div>
                 <div>
                   <h3 className="font-bold mb-1">번역 (줄 {targetResult.lineCount})</h3>
-                  <div className="border p-2 text-sm" dangerouslySetInnerHTML={{ __html: targetResult.output }} />
+                  <div className="border p-2 text-sm rounded" dangerouslySetInnerHTML={{ __html: targetResult.output }} />
                 </div>
               </div>
               {(sourceResult.errors.length > 0 || targetResult.errors.length > 0 || tagMismatch.length > 0) && (
