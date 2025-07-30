@@ -10,6 +10,12 @@ type Template = {
   snippet: string;
 };
 
+type TagPattern = {
+  id: string;
+  pattern: string;
+  type: "open" | "close" | "empty";
+};
+
 function renderFormattedText(input: string) {
   if (typeof input !== "string") input = String(input ?? "");
   const normalizedInput = input.replace(/\\n/g, "\n");
@@ -148,6 +154,15 @@ export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState("span");
   const [newOpen, setNewOpen] = useState("");
   const [newClose, setNewClose] = useState("");
+
+  const [tagPatterns, setTagPatterns] = useState<TagPattern[]>([
+    { id: "default-open", pattern: "<span[^>]*>", type: "open" },
+    { id: "default-close", pattern: "</>", type: "close" },
+    { id: "default-br", pattern: "<br/?>", type: "empty" },
+  ]);
+  const [newPattern, setNewPattern] = useState("");
+  const [newPatternType, setNewPatternType] = useState<TagPattern["type"]>("open");
+  const [previewText, setPreviewText] = useState("");
   const sourceRef = useRef<HTMLTextAreaElement | null>(null);
   const targetRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -215,6 +230,34 @@ export default function Home() {
     setNewClose("");
   };
 
+  const addPattern = () => {
+    if (!newPattern.trim()) return;
+    const id = Date.now().toString();
+    setTagPatterns([...tagPatterns, { id, pattern: newPattern, type: newPatternType }]);
+    setNewPattern("");
+    setNewPatternType("open");
+  };
+
+  const previewOutput = () => {
+    let result = previewText
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    tagPatterns.forEach(p => {
+      try {
+        const regex = new RegExp(p.pattern, "g");
+        const cls =
+          p.type === "open"
+            ? "bg-blue-100 text-blue-800"
+            : p.type === "close"
+            ? "bg-red-100 text-red-800"
+            : "bg-green-100 text-green-800";
+        result = result.replace(regex, m => `<span class='${cls} px-1 rounded'>${m}</span>`);
+      } catch {}
+    });
+    return result;
+  };
+
   const columnOptions = excelData[0]?.map((header, idx) => (
     <option value={idx} key={idx}>{header || `열 ${idx}`}</option>
   ));
@@ -236,6 +279,43 @@ export default function Home() {
 
       <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-3">
         <h2 className="font-semibold">직접 입력</h2>
+        <div className="space-y-2">
+          <h3 className="font-medium">정규식 관리</h3>
+          <div className="flex items-center gap-2">
+            <input
+              value={newPattern}
+              onChange={e => setNewPattern(e.target.value)}
+              placeholder="regex"
+              className="border p-1 flex-1"
+            />
+            <select
+              value={newPatternType}
+              onChange={e => setNewPatternType(e.target.value as TagPattern["type"])}
+              className="border p-1"
+            >
+              <option value="open">Open</option>
+              <option value="close">Close</option>
+              <option value="empty">Empty</option>
+            </select>
+            <button onClick={addPattern} className="px-2 py-1 bg-indigo-600 text-white rounded">등록</button>
+          </div>
+          <ul className="text-sm text-gray-700 list-disc list-inside">
+            {tagPatterns.map(p => (
+              <li key={p.id}>[{p.type}] /{p.pattern}/</li>
+            ))}
+          </ul>
+          <textarea
+            value={previewText}
+            onChange={e => setPreviewText(e.target.value)}
+            placeholder="프리뷰용 텍스트"
+            rows={2}
+            className="border p-1 w-full"
+          />
+          <div
+            className="border p-2 text-sm rounded"
+            dangerouslySetInnerHTML={{ __html: previewOutput() }}
+          />
+        </div>
         <div className="flex items-center gap-2">
           <input
             value={newOpen}
