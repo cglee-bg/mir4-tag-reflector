@@ -148,8 +148,8 @@ export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState("span");
   const [newOpen, setNewOpen] = useState("");
   const [newClose, setNewClose] = useState("");
-  const sourceRef = useRef<HTMLTextAreaElement>(null);
-  const targetRef = useRef<HTMLTextAreaElement>(null);
+  const sourceRef = useRef<HTMLTextAreaElement | null>(null);
+  const targetRef = useRef<HTMLTextAreaElement | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -187,7 +187,7 @@ export default function Home() {
   };
 
   const insertTemplateAtCursor = (
-    ref: React.RefObject<HTMLTextAreaElement>,
+    ref: React.RefObject<HTMLTextAreaElement | null>,
     setValue: (v: string) => void
   ) => {
     const template = templates.find(t => t.id === selectedTemplate);
