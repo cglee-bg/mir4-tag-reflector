@@ -1,8 +1,14 @@
 // MIR4 Tag Reflector 개선된 UI + GitHub 배포용
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
+
+type Template = {
+  id: string;
+  label: string;
+  snippet: string;
+};
 
 function renderFormattedText(input: string) {
   if (typeof input !== "string") input = String(input ?? "");
@@ -134,6 +140,17 @@ export default function Home() {
     mismatch: string;
   } | null>(null);
 
+  const [templates, setTemplates] = useState<Template[]>([
+    { id: "span", label: "<span color=\"\">...</>", snippet: "<span color=\"\"></>" },
+    { id: "close", label: "</>", snippet: "</>" },
+    { id: "br", label: "<br/>", snippet: "<br/>" },
+  ]);
+  const [selectedTemplate, setSelectedTemplate] = useState("span");
+  const [newOpen, setNewOpen] = useState("");
+  const [newClose, setNewClose] = useState("");
+  const sourceRef = useRef<HTMLTextAreaElement>(null);
+  const targetRef = useRef<HTMLTextAreaElement>(null);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -169,6 +186,35 @@ export default function Home() {
     setManualResult({ source: src, target: tgt, mismatch });
   };
 
+  const insertTemplateAtCursor = (
+    ref: React.RefObject<HTMLTextAreaElement>,
+    setValue: (v: string) => void
+  ) => {
+    const template = templates.find(t => t.id === selectedTemplate);
+    if (!template || !ref.current) return;
+    const el = ref.current;
+    const start = el.selectionStart || 0;
+    const end = el.selectionEnd || 0;
+    const newText = el.value.slice(0, start) + template.snippet + el.value.slice(end);
+    setValue(newText);
+    requestAnimationFrame(() => {
+      const pos = start + template.snippet.length;
+      el.selectionStart = el.selectionEnd = pos;
+      el.focus();
+    });
+  };
+
+  const addTemplate = () => {
+    if (!newOpen.trim()) return;
+    const snippet = newOpen + (newClose || "");
+    const label = newClose ? `${newOpen}...${newClose}` : newOpen;
+    const id = Date.now().toString();
+    setTemplates([...templates, { id, label, snippet }]);
+    setSelectedTemplate(id);
+    setNewOpen("");
+    setNewClose("");
+  };
+
   const columnOptions = excelData[0]?.map((header, idx) => (
     <option value={idx} key={idx}>{header || `열 ${idx}`}</option>
   ));
@@ -190,20 +236,75 @@ export default function Home() {
 
       <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-3">
         <h2 className="font-semibold">직접 입력</h2>
-        <textarea
-          value={manualSource}
-          onChange={e => setManualSource(e.target.value)}
-          placeholder="Source"
-          rows={3}
-          className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-        />
-        <textarea
-          value={manualTarget}
-          onChange={e => setManualTarget(e.target.value)}
-          placeholder="Target"
-          rows={3}
-          className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            value={newOpen}
+            onChange={e => setNewOpen(e.target.value)}
+            placeholder="<tag>"
+            className="border p-1 flex-1"
+          />
+          <input
+            value={newClose}
+            onChange={e => setNewClose(e.target.value)}
+            placeholder="</tag>"
+            className="border p-1 flex-1"
+          />
+          <button onClick={addTemplate} className="px-2 py-1 bg-indigo-600 text-white rounded">추가</button>
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <select
+              value={selectedTemplate}
+              onChange={e => setSelectedTemplate(e.target.value)}
+              className="border px-2"
+            >
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => insertTemplateAtCursor(sourceRef, setManualSource)}
+              className="px-2 py-1 bg-gray-200 rounded"
+            >
+              삽입
+            </button>
+          </div>
+          <textarea
+            ref={sourceRef}
+            value={manualSource}
+            onChange={e => setManualSource(e.target.value)}
+            placeholder="Source"
+            rows={3}
+            className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <select
+              value={selectedTemplate}
+              onChange={e => setSelectedTemplate(e.target.value)}
+              className="border px-2"
+            >
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => insertTemplateAtCursor(targetRef, setManualTarget)}
+              className="px-2 py-1 bg-gray-200 rounded"
+            >
+              삽입
+            </button>
+          </div>
+          <textarea
+            ref={targetRef}
+            value={manualTarget}
+            onChange={e => setManualTarget(e.target.value)}
+            placeholder="Target"
+            rows={3}
+            className="border border-gray-300 rounded-md p-2 w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
         <button onClick={runManualCheck} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">검사 실행</button>
       </div>
 
