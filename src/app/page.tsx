@@ -18,7 +18,7 @@ type TagPattern = {
 
 function renderFormattedText(input: string) {
   if (typeof input !== "string") input = String(input ?? "");
-  const normalizedInput = input.replace(/\\n/g, "\n");
+  const normalizedInput = input.replace(/\r\n?|\n/g, "\n");
 
   const tagSet: Set<string> = new Set();
   const tagCounts: Record<string, number> = {};
@@ -30,7 +30,7 @@ function renderFormattedText(input: string) {
   const singleColorTagRegex = /<([A-Fa-f0-9]{8})>([^<\n]*)<\/>/g;
 
   let output = "";
-  const lines = normalizedInput.split(/\r?\n/);
+  const lines = normalizedInput.split("\n");
 
   lines.forEach((line, index) => {
     let replacedLine = line;
