@@ -7,8 +7,8 @@ import * as XLSX from "xlsx";
 function renderFormattedText(input: string) {
   if (typeof input !== "string") input = String(input ?? "");
   const normalizedInput = input
-    .replace(/\\n/g, "\n")
-    .replace(/\r\n?/g, "\n");
+    .replace(/\r\n|\r/g, "\n")
+    .replace(/\\n/g, "\n");
 
   const tagSet: Set<string> = new Set();
   const tagCounts: Record<string, number> = {};
