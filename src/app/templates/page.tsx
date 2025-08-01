@@ -11,6 +11,11 @@ interface ProjectTemplate {
   special: string[];
 }
 
+interface TagPattern {
+  pattern: string;
+  type: PatternType;
+}
+
 const initialTemplates: Record<string, ProjectTemplate> = {
   MIR4: { open: [], close: [], self: [], special: [] },
   ArcheAge: { open: [], close: [], self: [], special: [] },
@@ -20,8 +25,9 @@ export default function TemplateManager() {
   const [projectTemplates, setProjectTemplates] = useState<Record<string, ProjectTemplate>>(initialTemplates);
   const [selectedProject, setSelectedProject] = useState<string>(Object.keys(initialTemplates)[0]);
   const [newProject, setNewProject] = useState('');
-  const [pattern, setPattern] = useState('');
+  const [newPattern, setNewPattern] = useState('');
   const [patternType, setPatternType] = useState<PatternType>('open');
+  const [previewText, setPreviewText] = useState('');
 
   const addProject = () => {
     const name = newProject.trim();
@@ -32,15 +38,15 @@ export default function TemplateManager() {
   };
 
   const addPattern = () => {
-    if (!pattern.trim()) return;
+    if (!newPattern.trim()) return;
     setProjectTemplates((prev) => ({
       ...prev,
       [selectedProject]: {
         ...prev[selectedProject],
-        [patternType]: [...prev[selectedProject][patternType], pattern],
+        [patternType]: [...prev[selectedProject][patternType], newPattern],
       },
     }));
-    setPattern('');
+    setNewPattern('');
   };
 
   const removePattern = (type: PatternType, index: number) => {
@@ -55,6 +61,34 @@ export default function TemplateManager() {
 
   const saveTemplates = () => {
     console.log(projectTemplates);
+  };
+
+  const previewOutput = () => {
+    let result = previewText
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const patterns: TagPattern[] = [
+      ...projectTemplates[selectedProject].open.map((p) => ({ pattern: p, type: 'open' as PatternType })),
+      ...projectTemplates[selectedProject].close.map((p) => ({ pattern: p, type: 'close' as PatternType })),
+      ...projectTemplates[selectedProject].self.map((p) => ({ pattern: p, type: 'self' as PatternType })),
+      ...projectTemplates[selectedProject].special.map((p) => ({ pattern: p, type: 'special' as PatternType })),
+    ];
+    patterns.forEach((p) => {
+      try {
+        const regex = new RegExp(p.pattern, 'g');
+        const cls =
+          p.type === 'open'
+            ? 'bg-blue-100 text-blue-800'
+            : p.type === 'close'
+            ? 'bg-red-100 text-red-800'
+            : p.type === 'self'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-purple-100 text-purple-800';
+        result = result.replace(regex, (m) => `<span class='${cls} px-1 rounded'>${m}</span>`);
+      } catch {}
+    });
+    return result;
   };
 
   const list = Object.entries(projectTemplates[selectedProject] || {}).flatMap(([type, patterns]) =>
@@ -88,8 +122,8 @@ export default function TemplateManager() {
 
       <div className="flex flex-wrap items-end gap-2 mb-4">
         <input
-          value={pattern}
-          onChange={(e) => setPattern(e.target.value)}
+          value={newPattern}
+          onChange={(e) => setNewPattern(e.target.value)}
           placeholder="정규식 패턴"
           className="border p-2 rounded flex-1"
         />
@@ -127,6 +161,18 @@ export default function TemplateManager() {
           </li>
         ))}
       </ul>
+
+      <textarea
+        value={previewText}
+        onChange={(e) => setPreviewText(e.target.value)}
+        placeholder="프리뷰용 텍스트"
+        rows={2}
+        className="border p-2 w-full rounded mt-4"
+      />
+      <div
+        className="border p-2 text-sm rounded mt-2"
+        dangerouslySetInnerHTML={{ __html: previewOutput() }}
+      />
 
       <button
         onClick={saveTemplates}
