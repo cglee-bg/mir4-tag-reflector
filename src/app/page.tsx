@@ -8,11 +8,13 @@ function renderFormattedText(input: string) {
   if (typeof input !== "string") input = String(input ?? "");
   const normalizedInput = input
     .replace(/\r\n|\r/g, "\n")
+    .replace(/\\r\\n|\\r/g, "\n")
     .replace(/\\n/g, "\n");
 
   const tagSet: Set<string> = new Set();
   const tagCounts: Record<string, number> = {};
   const numberRegex = /[-+]?\d+(\.\d+)?/g;
+  const placeholderRegex = /{[^{}]+}/g;
   const openTagRegex = /<span[^>]*>/g;
   const closeTagRegex = /<\/>/g;
   const fullTagRegex = /<span color=\"(#[A-Za-z0-9_]+)\">(.*?)<\/>/g;
@@ -21,6 +23,7 @@ function renderFormattedText(input: string) {
 
   let output = "";
   const lines = normalizedInput.split("\n");
+  const placeholders = normalizedInput.match(placeholderRegex) || [];
 
   lines.forEach((line, index) => {
     let replacedLine = line;
@@ -62,13 +65,14 @@ function renderFormattedText(input: string) {
   const openTags = (normalizedInput.match(openTagRegex) || []).length;
   const closeTags = (normalizedInput.match(closeTagRegex) || []).length;
   const numbers = (normalizedInput.match(numberRegex) || []).map(n => n);
+  const placeholderList = placeholders;
 
   const errors: string[] = [];
   if (openTags !== closeTags) {
     errors.push(`❗ <span>(${openTags}) / </>(${closeTags}) 개수가 일치하지 않습니다.`);
   }
 
-  return { output, tagSet, tagCounts, errors, lineCount: lines.length, numberList: numbers, openTags, closeTags };
+  return { output, tagSet, tagCounts, errors, lineCount: lines.length, numberList: numbers, placeholders: placeholderList, openTags, closeTags };
 }
 
 function compareTags(
@@ -80,6 +84,8 @@ function compareTags(
   targetLineCount: number,
   sourceNumbers: string[],
   targetNumbers: string[],
+  sourcePlaceholders: string[],
+  targetPlaceholders: string[],
   sourceOpens: number,
   targetOpens: number,
   sourceCloses: number,
@@ -108,6 +114,12 @@ function compareTags(
   const reverseMismatch = targetNumbers.filter(n => !sourceNumbers.includes(n));
   if (numberMismatch.length > 0 || reverseMismatch.length > 0) {
     mismatchMessages.push(`❗ 숫자 값 차이: 원문만 ${numberMismatch.join(", ")} / 번역만 ${reverseMismatch.join(", ")}`);
+  }
+
+  const placeholderMismatch = sourcePlaceholders.filter(p => !targetPlaceholders.includes(p));
+  const placeholderReverse = targetPlaceholders.filter(p => !sourcePlaceholders.includes(p));
+  if (placeholderMismatch.length > 0 || placeholderReverse.length > 0) {
+    mismatchMessages.push(`❗ 플레이스홀더 차이: 원문만 ${placeholderMismatch.join(", ")} / 번역만 ${placeholderReverse.join(", ")}`);
   }
 
   return mismatchMessages.join("<br>");
@@ -163,6 +175,8 @@ export default function Home() {
       tgt.lineCount,
       src.numberList,
       tgt.numberList,
+      src.placeholders,
+      tgt.placeholders,
       src.openTags,
       tgt.openTags,
       src.closeTags,
@@ -278,6 +292,8 @@ export default function Home() {
             targetResult.lineCount,
             sourceResult.numberList,
             targetResult.numberList,
+            sourceResult.placeholders,
+            targetResult.placeholders,
             sourceResult.openTags,
             targetResult.openTags,
             sourceResult.closeTags,
