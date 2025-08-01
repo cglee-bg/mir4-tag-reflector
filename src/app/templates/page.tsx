@@ -91,8 +91,14 @@ export default function TemplateManager() {
     return result;
   };
 
-  const list = Object.entries(projectTemplates[selectedProject] || {}).flatMap(([type, patterns]) =>
-    patterns.map((p, index) => ({ pattern: p, type: type as PatternType, index }))
+  const list = (
+    Object.keys(projectTemplates[selectedProject] || {}) as PatternType[]
+  ).flatMap((type) =>
+    projectTemplates[selectedProject][type].map((p: string, index: number) => ({
+      pattern: p,
+      type,
+      index,
+    }))
   );
 
   return (
